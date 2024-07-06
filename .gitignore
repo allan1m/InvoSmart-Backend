@@ -1,0 +1,5 @@
+# Visual Studio files
+.vs/
+
+# AppSettings.JSON
+appsettings.json

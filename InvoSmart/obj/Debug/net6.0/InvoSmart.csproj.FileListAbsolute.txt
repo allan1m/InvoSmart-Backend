@@ -48,3 +48,5 @@ C:\Users\Allan\source\repos\InvoSmart\InvoSmart\bin\Debug\net6.0\Microsoft.Ident
 C:\Users\Allan\source\repos\InvoSmart\InvoSmart\bin\Debug\net6.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\Allan\source\repos\InvoSmart\InvoSmart\bin\Debug\net6.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\Allan\source\repos\InvoSmart\InvoSmart\bin\Debug\net6.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\Allan\source\repos\InvoSmart\InvoSmart\obj\Debug\net6.0\InvoSmart.sourcelink.json
+C:\Users\Allan\source\repos\InvoSmart\InvoSmart\bin\Debug\net6.0\web.config

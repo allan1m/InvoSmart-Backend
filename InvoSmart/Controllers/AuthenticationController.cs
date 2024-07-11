@@ -17,13 +17,12 @@ namespace InvoSmart.Controllers
     [ApiController]
     public class AuthenticationController : ControllerBase
     {
-        private IConfiguration _configuration;
+        public IConfiguration _configuration;
 
         public AuthenticationController(IConfiguration configuration)
         {
             _configuration = configuration;
         }
-
 
         /**
          * LOGIN
@@ -43,7 +42,7 @@ namespace InvoSmart.Controllers
                 myCon.Open();
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
-                    myCommand.Parameters.AddWithValue("@clientEmail", clientEmail);
+                    myCommand.Parameters.AddWithValue("@clientEmail", clientEmail.ToLower());
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader);
                     myReader.Close();
@@ -66,13 +65,13 @@ namespace InvoSmart.Controllers
                     var userInfo = new
                     {
                         ClientID = row["clientID"].ToString(),
-                        Email = row["clientEmail"].ToString(),
-                        FirstName = row["clientFirstName"].ToString(),
-                        LastName = row["clientLastName"].ToString(),
-                        Company = row["clientCompanyName"].ToString(),
+                        Email = row["clientEmail"].ToString().ToUpper(),
+                        FirstName = row["clientFirstName"].ToString().ToUpper(),
+                        LastName = row["clientLastName"].ToString().ToUpper(),
+                        Company = row["clientCompanyName"].ToString().ToUpper(),
                         CompanyAddress = row["clientCompanyAddress"].ToString(),
-                        CompanyCity = row["clientCompanyCity"].ToString(),
-                        CompanyState = row["clientCompanyState"].ToString(),
+                        CompanyCity = row["clientCompanyCity"].ToString().ToUpper(),
+                        CompanyState = row["clientCompanyState"].ToString().ToUpper(),
                         CompanyZipCode = row["clientCompanyZipCode"].ToString(),
                         CompanyPhone = row["clientPhoneNumber"].ToString(),
                         Token = token
@@ -130,15 +129,15 @@ namespace InvoSmart.Controllers
                 
                 using (SqlCommand insertCommand = new SqlCommand(insertQuery, myCon))
                 {
-                    insertCommand.Parameters.AddWithValue("@newClientFName", newClientFName);
-                    insertCommand.Parameters.AddWithValue("@newClientLName", newClientLName);
-                    insertCommand.Parameters.AddWithValue("@newClientCompanyName", newClientCompanyName);
-                    insertCommand.Parameters.AddWithValue("@newClientCompanyAddress", newClientCompanyAddress);
-                    insertCommand.Parameters.AddWithValue("@newClientCompanyCity", newClientCompanyCity);
-                    insertCommand.Parameters.AddWithValue("@newClientCompanyState", newClientCompanyState);
+                    insertCommand.Parameters.AddWithValue("@newClientFName", newClientFName.ToUpper());
+                    insertCommand.Parameters.AddWithValue("@newClientLName", newClientLName.ToUpper());
+                    insertCommand.Parameters.AddWithValue("@newClientCompanyName", newClientCompanyName.ToUpper());
+                    insertCommand.Parameters.AddWithValue("@newClientCompanyAddress", newClientCompanyAddress.ToUpper());
+                    insertCommand.Parameters.AddWithValue("@newClientCompanyCity", newClientCompanyCity.ToUpper());
+                    insertCommand.Parameters.AddWithValue("@newClientCompanyState", newClientCompanyState.ToUpper());
                     insertCommand.Parameters.AddWithValue("@newClientCompanyZipCode", newClientCompanyZipCode);
                     insertCommand.Parameters.AddWithValue("@newClientPhoneNumber", newClientPhoneNumber);
-                    insertCommand.Parameters.AddWithValue("@newClientEmail", newClientEmail);
+                    insertCommand.Parameters.AddWithValue("@newClientEmail", newClientEmail.ToLower());
                     insertCommand.Parameters.AddWithValue("@newClientPassword", hashedPassword);
 
                     newClientID = (int)insertCommand.ExecuteScalar();
@@ -156,11 +155,11 @@ namespace InvoSmart.Controllers
                 FirstName = newClientFName,
                 LastName = newClientLName,
                 Company = newClientCompanyName,
-                Address = newClientCompanyAddress,
-                City = newClientCompanyCity,
-                State = newClientCompanyState,
-                ZipCode = newClientCompanyZipCode,
-                Phone = newClientPhoneNumber,
+                CompanyAddress = newClientCompanyAddress,
+                CompanyCity = newClientCompanyCity,
+                CompanyState = newClientCompanyState,
+                CompanyZipCode = newClientCompanyZipCode,
+                CompanyPhone = newClientPhoneNumber,
                 Token = token
             };
             return new JsonResult(userInfo);
@@ -186,30 +185,5 @@ namespace InvoSmart.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
-        //Logout
-        /*[HttpPost]
-        [Route("LogoutClient")]
-        public IActionResult LogoutClient()
-        {
-            // In case of JWT, logout can be handled at the client side by simply discarding the token.
-            // No need to maintain any state on server side.
-            return new JsonResult("Logged out successfully.");
-        }
-        */
-
-        //ProtectredEndPoint
-        //Used as sample method
-        /*
-        [Authorize]
-        [HttpGet]
-        [Route("ProtectedEndpoint")]
-        public IActionResult GetProtectedData()
-        {
-            return new JsonResult("This is protected data.");
-        }
-        */
-
-        //recover_password
     }
 }

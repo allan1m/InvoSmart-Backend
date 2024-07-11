@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InvoSmart")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+63cfba22a4c7214cc807d3087037f0a956165399")]
 [assembly: System.Reflection.AssemblyProductAttribute("InvoSmart")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InvoSmart")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

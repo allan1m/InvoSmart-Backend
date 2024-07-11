@@ -40,12 +40,13 @@ option.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopH
 var app = builder.Build();
 
 //Enable CORS
-app.UseCors(c => c.AllowAnyHeader().AllowAnyOrigin().AllowAnyMethod());
+app.UseCors(c => c.AllowAnyHeader().WithOrigins("http://localhost:3000").AllowAnyMethod());
+
+app.UseSwagger();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
     app.UseSwaggerUI();
 }
 

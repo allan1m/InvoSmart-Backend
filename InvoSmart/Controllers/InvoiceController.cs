@@ -5,6 +5,7 @@ using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace InvoSmart.Controllers
 {
@@ -17,6 +18,102 @@ namespace InvoSmart.Controllers
         public InvoiceController(IConfiguration configuration)
         {
             _configuration = configuration;
+        }
+
+        [HttpGet]
+        [Route("GetInvoices")]
+        public JsonResult GetInvoices([FromQuery] int clientID)
+        {
+            Console.WriteLine("GET INVOICES: 1-1");
+            string query = @"
+                SELECT 
+                    i.invoiceNumber, 
+                    i.invoiceDate, 
+                    i.dueDate, 
+                    i.billedToEntityName, 
+                    i.billedToEntityAddress, 
+                    i.payableTo, 
+                    i.servicesRendered, 
+                    i.submittedOn, 
+                    i.subTotal, 
+                    i.total, 
+                    i.createdAt, 
+                    i.updatedAt, 
+                    ii.invoiceItemID, 
+                    ii.description AS ItemDescription, 
+                    ii.address AS ItemAddress, 
+                    ii.qty AS ItemQuantity, 
+                    ii.unitPrice AS ItemUnitPrice 
+                FROM dbo.Invoices i 
+                INNER JOIN dbo.InvoiceItems ii ON i.invoiceID = ii.invoiceID 
+                WHERE i.clientID = @clientID;";
+            DataTable table = new DataTable();
+            string sqlDatasource = _configuration.GetConnectionString("invosmartDBCon");
+            SqlDataReader myReader;
+
+            using (SqlConnection myCon = new SqlConnection(sqlDatasource))
+            {
+                myCon.Open();
+                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                {
+                    myCommand.Parameters.AddWithValue("@clientID", clientID);
+                    myReader = myCommand.ExecuteReader();
+                    table.Load(myReader);
+                    myReader.Close();
+                    myCon.Close();
+                }
+            }
+            Console.WriteLine(table.Rows.Count);
+
+            if (table.Rows.Count > 0)
+            {
+                Console.WriteLine("GET INVOICES: 1-2");
+
+                var invoices = table.AsEnumerable()
+                    .GroupBy(row => new
+                    {
+                        InvoiceNumber = row.Field<string>("invoiceNumber"),
+                        InvoiceDate = row.Field<DateTime>("invoiceDate"),
+                        DueDate = row.Field<DateTime>("dueDate"),
+                        BilledToEntityName = row.Field<string>("billedToEntityName"),
+                        BilledToEntityAddress = row.Field<string>("billedToEntityAddress"),
+                        PayableTo = row.Field<string>("payableTo"),
+                        ServicesRendered = row.Field<string>("servicesRendered"),
+                        SubmittedOn = row.Field<DateTime>("submittedOn"),
+                        SubTotal = row.Field<decimal>("subTotal"),
+                        Total = row.Field<decimal>("total"),
+                        CreatedAt = row.Field<DateTime>("createdAt"),
+                        UpdatedAt = row.Field<DateTime>("updatedAt")
+                    })
+                    .Select(group => new
+                    {
+                        InvoiceNumber = group.Key.InvoiceNumber,
+                        InvoiceDate = group.Key.InvoiceDate,
+                        DueDate = group.Key.DueDate,
+                        BilledToEntityName = group.Key.BilledToEntityName,
+                        BilledToEntityAddress = group.Key.BilledToEntityAddress,
+                        PayableTo = group.Key.PayableTo,
+                        ServicesRendered = group.Key.ServicesRendered,
+                        SubmittedOn = group.Key.SubmittedOn,
+                        SubTotal = group.Key.SubTotal,
+                        Total = group.Key.Total,
+                        CreatedAt = group.Key.CreatedAt,
+                        UpdatedAt = group.Key.UpdatedAt,
+                        InvoiceItems = group.Select(item => new
+                        {
+                            InvoiceItemID = item.Field<int>("invoiceItemID"),
+                            Description = item.Field<string>("ItemDescription"),
+                            Address = item.Field<string>("ItemAddress"),
+                            Quantity = item.Field<int>("ItemQuantity"),
+                            UnitPrice = item.Field<string>("ItemUnitPrice")
+                        }).ToList()
+                    }).ToList();
+
+                return new JsonResult(invoices);
+            }
+
+            Console.WriteLine("GET INVOICES: 1-3");
+            return new JsonResult("Fail");
         }
 
         [HttpPost]

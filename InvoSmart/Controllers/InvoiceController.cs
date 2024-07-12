@@ -20,11 +20,19 @@ namespace InvoSmart.Controllers
             _configuration = configuration;
         }
 
+        /**
+         * GETINVOICES
+         * This function handles the retrieval of invoices for a specified client.
+         * It receives a clientID as a query parameter and returns the corresponding invoices in JSON format.
+         */
         [HttpGet]
         [Route("GetInvoices")]
         public JsonResult GetInvoices([FromQuery] int clientID)
         {
+            // Log the start of the GetInvoices method execution
             Console.WriteLine("GET INVOICES: 1-1");
+
+            // SQL query to retrieve invoice and invoice item details for the specified client
             string query = @"
                 SELECT 
                     i.invoiceNumber, 
@@ -47,28 +55,51 @@ namespace InvoSmart.Controllers
                 FROM dbo.Invoices i 
                 INNER JOIN dbo.InvoiceItems ii ON i.invoiceID = ii.invoiceID 
                 WHERE i.clientID = @clientID;";
+
+            // Create a DataTable to hold the results of the SQL query
             DataTable table = new DataTable();
+
+            // Get the database connection string from the configuration
             string sqlDatasource = _configuration.GetConnectionString("invosmartDBCon");
+
+            // Declare a SqlDataReader to read the data from the database
             SqlDataReader myReader;
 
+            // Open a connection to the SQL database
             using (SqlConnection myCon = new SqlConnection(sqlDatasource))
             {
+                // Open the connection
                 myCon.Open();
+
+                // Prepare the SQL command with the query and connection
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
+                    // Add the clientID parameter to the SQL query
                     myCommand.Parameters.AddWithValue("@clientID", clientID);
+
+                    // Execute the query and read the results
                     myReader = myCommand.ExecuteReader();
+
+                    // Load the results into the DataTable
                     table.Load(myReader);
+
+                    // Close the SqlDataReader
                     myReader.Close();
+
+                    // Close the connection
                     myCon.Close();
                 }
             }
+            // Log the number of rows retrieved from the query
             Console.WriteLine(table.Rows.Count);
 
+            // Check if any rows were retrieved
             if (table.Rows.Count > 0)
             {
+                // Log the next step of processing the invoices
                 Console.WriteLine("GET INVOICES: 1-2");
 
+                // Group and transform the data into a structured format
                 var invoices = table.AsEnumerable()
                     .GroupBy(row => new
                     {
@@ -109,45 +140,64 @@ namespace InvoSmart.Controllers
                         }).ToList()
                     }).ToList();
 
+                // Return the structured invoice data as JSON
                 return new JsonResult(invoices);
             }
 
+            // Log the case where no invoices were found for the client
             Console.WriteLine("GET INVOICES: 1-3");
+
+            // Return a failure message as JSON if no invoices were found
             return new JsonResult("Fail");
         }
 
+
+        /**
+         * CREATEINVOICE
+         * This function handles the creation of a new invoice for a client.
+         * It receives invoice data as a JSON body and inserts the data into the database.
+         */
         [HttpPost]
         [Route("CreateInvoice")]
         public JsonResult CreateInvoice([FromBody] InvoiceData invoiceData)
         {
+            // Get the database connection string from the configuration
             string sqlDatasource = _configuration.GetConnectionString("invosmartDBCon");
 
+            // Open a connection to the SQL database
             using (SqlConnection myCon = new SqlConnection(sqlDatasource))
             {
+                // Open the connection
                 myCon.Open();
 
-                // Check if clientID exists
+                // Check if the provided clientID exists in the Clients table
                 string checkClientQuery = "SELECT COUNT(1) FROM dbo.Clients WHERE clientID = @clientID";
                 using (SqlCommand checkClientCommand = new SqlCommand(checkClientQuery, myCon))
                 {
+                    // Add the clientID parameter to the SQL query
                     checkClientCommand.Parameters.AddWithValue("@clientID", invoiceData.ClientID);
+
+                    // Execute the query and get the count of matching records
                     int clientExists = (int)checkClientCommand.ExecuteScalar();
 
+                    // If no matching client is found, return a failure message
                     if (clientExists == 0)
                     {
                         return new JsonResult("Client does not exist");
                     }
                 }
 
-                // Insert into Invoices table
+                // SQL query to insert a new invoice into the Invoices table and return the new invoiceID
                 string invoiceInsertQuery = @"INSERT INTO dbo.Invoices 
                                             (clientID, invoiceNumber, invoiceDate, dueDate, billedToEntityName, billedToEntityAddress, payableTo, servicesRendered, submittedOn, subTotal, total) 
                                             OUTPUT INSERTED.invoiceID 
                                             VALUES (@clientID, @invoiceNumber, @invoiceDate, @dueDate, @billedToEntityName, @billedToEntityAddress, @payableTo, @servicesRendered, @submittedOn, @subTotal, @total)";
 
+                // Variable to store the new invoiceID
                 int invoiceID;
                 using (SqlCommand invoiceInsertCommand = new SqlCommand(invoiceInsertQuery, myCon))
                 {
+                    // Add parameters to the SQL query for the new invoice
                     invoiceInsertCommand.Parameters.AddWithValue("@clientID", invoiceData.ClientID);
                     invoiceInsertCommand.Parameters.AddWithValue("@invoiceNumber", invoiceData.InvoiceNumber);
                     invoiceInsertCommand.Parameters.AddWithValue("@invoiceDate", invoiceData.InvoiceDate);
@@ -160,32 +210,38 @@ namespace InvoSmart.Controllers
                     invoiceInsertCommand.Parameters.AddWithValue("@subTotal", invoiceData.SubTotal);
                     invoiceInsertCommand.Parameters.AddWithValue("@total", invoiceData.Total);
 
+                    // Execute the query and get the new invoiceID
                     invoiceID = (int)invoiceInsertCommand.ExecuteScalar();
                 }
 
-                // Insert into InvoiceItems table
+                // SQL query to insert invoice items into the InvoiceItems table
                 string invoiceItemsInsertQuery = @"
             INSERT INTO dbo.InvoiceItems 
             (invoiceID, description, address, qty, unitPrice) 
             VALUES (@invoiceID, @description, @address, @qty, @unitPrice)";
 
+                // Loop through each item in the invoiceData and insert it into the InvoiceItems table
                 foreach (var item in invoiceData.Items)
                 {
                     using (SqlCommand invoiceItemsInsertCommand = new SqlCommand(invoiceItemsInsertQuery, myCon))
                     {
+                        // Add parameters to the SQL query for the invoice item
                         invoiceItemsInsertCommand.Parameters.AddWithValue("@invoiceID", invoiceID);
                         invoiceItemsInsertCommand.Parameters.AddWithValue("@description", item.Description);
                         invoiceItemsInsertCommand.Parameters.AddWithValue("@address", item.Address);
                         invoiceItemsInsertCommand.Parameters.AddWithValue("@qty", item.Qty);
                         invoiceItemsInsertCommand.Parameters.AddWithValue("@unitPrice", item.UnitPrice);
 
+                        // Execute the query to insert the invoice item
                         invoiceItemsInsertCommand.ExecuteNonQuery();
                     }
                 }
 
+                // Close the database connection
                 myCon.Close();
             }
 
+            // Return a success message as JSON
             return new JsonResult("Invoice created successfully");
         }
     }
